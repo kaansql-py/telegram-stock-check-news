@@ -18,6 +18,16 @@ NEWS_DEBUG = False
 
 
 # ============================
+# ESCAPE MARKDOWN FOR TELEGRAM
+# ============================
+def escape_md(text):
+    escape_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+    for ch in escape_chars:
+        text = text.replace(ch, f"\\{ch}")
+    return text
+
+
+# ============================
 # FULL SCANNER (YOUR EXACT LOGIC)
 # ============================
 
@@ -182,6 +192,7 @@ def fetch_rss_titles(url, max_items=5, timeout=6):
 def stock_news(ticker, max_headlines=5):
     headlines = []
 
+    # 1) yfinance news
     try:
         t = yf.Ticker(ticker)
         news_list = t.news
@@ -193,6 +204,7 @@ def stock_news(ticker, max_headlines=5):
     except:
         pass
 
+    # 2) Yahoo RSS
     if len(headlines) < max_headlines:
         titles = fetch_rss_titles(f"https://finance.yahoo.com/rss/headline?s={ticker}")
         for t in titles:
@@ -345,7 +357,7 @@ def run_scanner(ticker):
 
     output.append(f"\n=== Recent News for {ticker} ===")
     for h in stock_news(ticker):
-        output.append(h)
+        output.append(escape_md(h))   # <-- FIXED HERE
 
     # Indicator Summary
     output.append(combined_table(df5, df1, ticker))
@@ -375,9 +387,9 @@ def handle_message(msg):
         # Telegram max message size = 4096 chars
         if len(result) > 4000:
             for i in range(0, len(result), 4000):
-                bot.send_message(msg.chat.id, result[i:i+4000], parse_mode="Markdown")
+                bot.send_message(msg.chat.id, result[i:i+4000], parse_mode="MarkdownV2")
         else:
-            bot.send_message(msg.chat.id, result, parse_mode="Markdown")
+            bot.send_message(msg.chat.id, result, parse_mode="MarkdownV2")
 
     except Exception as e:
         bot.send_message(msg.chat.id, f"❌ Error: {e}")
